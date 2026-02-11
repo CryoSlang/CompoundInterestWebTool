@@ -348,13 +348,13 @@ button:hover {
 
 .chart-wrapper {
   width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .chart-svg {
   width: 100%;
-  min-width: 640px;
-  height: 360px;
+  height: auto;
+  aspect-ratio: 980 / 360;
   display: block;
 }
 
