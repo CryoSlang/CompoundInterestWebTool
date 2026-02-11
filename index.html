@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compound Interest Calculator (Inflation-Adjusted)</title>
+    <meta
+      name="description"
+      content="Interactive compound interest calculator in today's dollars across four annual return scenarios."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <h1>Compound Interest Calculator</h1>
+        <p class="subtitle">
+          Inflation-adjusted projections in today's dollars using real monthly rates.
+        </p>
+      </header>
+
+      <section class="top-grid" aria-label="Inputs and summary">
+        <form id="calculator-form" class="panel input-panel" novalidate>
+          <h2>Inputs</h2>
+          <p id="assumption-text" class="helper">
+            Real monthly rate formula:
+            <code>((1 + annualRate) / (1 + inflationRate))^(1/12) - 1</code>.
+            Monthly contributions are assumed to keep constant purchasing power.
+          </p>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Initial investment</span>
+              <input
+                id="initialInvestment"
+                name="initialInvestment"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="100"
+                aria-describedby="assumption-text"
+              />
+            </label>
+
+            <label class="field">
+              <span>Monthly investment</span>
+              <input
+                id="monthlyInvestment"
+                name="monthlyInvestment"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="10"
+                aria-describedby="assumption-text"
+              />
+            </label>
+
+            <label class="field">
+              <span>Years</span>
+              <input
+                id="years"
+                name="years"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="60"
+                step="1"
+                aria-describedby="validation-message"
+              />
+            </label>
+
+            <label class="field">
+              <span>Inflation rate (%)</span>
+              <input
+                id="inflationRate"
+                name="inflationRate"
+                type="number"
+                inputmode="decimal"
+                step="0.1"
+                aria-describedby="assumption-text"
+              />
+            </label>
+
+            <label class="field">
+              <span>Rate 1 (%)</span>
+              <input id="rate1" name="rate1" type="number" inputmode="decimal" step="0.1" />
+            </label>
+
+            <label class="field">
+              <span>Rate 2 (%)</span>
+              <input id="rate2" name="rate2" type="number" inputmode="decimal" step="0.1" />
+            </label>
+
+            <label class="field">
+              <span>Rate 3 (%)</span>
+              <input id="rate3" name="rate3" type="number" inputmode="decimal" step="0.1" />
+            </label>
+
+            <label class="field">
+              <span>Rate 4 (%)</span>
+              <input id="rate4" name="rate4" type="number" inputmode="decimal" step="0.1" />
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="reset-button" type="button">Reset defaults</button>
+          </div>
+
+          <p id="validation-message" class="warning" role="status" aria-live="polite"></p>
+        </form>
+
+        <section class="panel summary-panel" aria-label="Summary metrics">
+          <h2>Summary</h2>
+          <div class="summary-grid" id="summary-grid"></div>
+        </section>
+      </section>
+
+      <section class="panel chart-panel" aria-label="Projection chart">
+        <div class="section-head">
+          <h2>Projection (Today&rsquo;s Dollars)</h2>
+          <p class="helper">Year-by-year inflation-adjusted value across 4 scenarios.</p>
+        </div>
+        <div id="chart-wrapper" class="chart-wrapper"></div>
+        <ul id="chart-legend" class="chart-legend" aria-label="Rate legend"></ul>
+      </section>
+
+      <section class="panel table-panel" aria-label="Projection table">
+        <div class="section-head">
+          <h2>Year-by-Year Table</h2>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Year</th>
+                <th scope="col" id="rate1-header">Rate 1</th>
+                <th scope="col" id="rate2-header">Rate 2</th>
+                <th scope="col" id="rate3-header">Rate 3</th>
+                <th scope="col" id="rate4-header">Rate 4</th>
+              </tr>
+            </thead>
+            <tbody id="projection-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
