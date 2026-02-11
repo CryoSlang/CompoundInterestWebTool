@@ -26,6 +26,12 @@ No build step required.
 1. Open `index.html` directly in a browser, or
 2. Serve the folder with a local static server.
 
+## Deployment Checklist
+
+For release/versioning steps and pre-publish checks, see:
+
+- `DEPLOYMENT_GUIDELINES.md`
+
 ## Deploy To GitHub Pages
 
 1. Create a new public GitHub repository.
