@@ -8,7 +8,7 @@ import {
 } from "./formatters.js";
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
-const APP_VERSION = "v1.4.1";
+const APP_VERSION = "v1.4.2";
 const TAKEOUT_DINNER_FOR_TWO_COST = 40;
 
 const dom = {
