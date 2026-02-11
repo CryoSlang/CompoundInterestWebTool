@@ -13,11 +13,36 @@
   <body>
     <main class="app-shell">
       <header class="page-header">
-        <h1>Compound Interest Calculator</h1>
-        <p class="subtitle">
-          Inflation-adjusted projections in today's dollars using real monthly rates.
-        </p>
+        <div class="page-header-main">
+          <h1>Compound Interest Calculator</h1>
+          <p class="subtitle">
+            Inflation-adjusted projections in today's dollars using real monthly rates.
+          </p>
+        </div>
+        <p class="version-stamp" id="app-version" aria-live="polite"></p>
       </header>
+
+      <section class="panel output-toolbar" aria-label="Output controls">
+        <div class="view-toggle-group" role="group" aria-label="Value display mode">
+          <span id="mode-real-label" class="mode-side-label is-active">Real (today&rsquo;s $)</span>
+          <button
+            id="view-mode-toggle"
+            class="mode-toggle-switch"
+            type="button"
+            role="switch"
+            aria-checked="false"
+            aria-label="Toggle between real and nominal values"
+          >
+            <span class="mode-toggle-thumb"></span>
+          </button>
+          <span id="mode-nominal-label" class="mode-side-label">Nominal (actual $)</span>
+        </div>
+        <div class="output-actions-group">
+          <button id="copy-share-link" type="button">Copy share link</button>
+          <button id="download-csv" type="button">Download CSV</button>
+        </div>
+      </section>
+      <p id="action-message" class="helper action-message" role="status" aria-live="polite"></p>
 
       <section class="top-grid" aria-label="Inputs and summary">
         <form id="calculator-form" class="panel input-panel" novalidate>
@@ -126,14 +151,14 @@
 
         <section class="panel summary-panel" aria-label="Summary metrics">
           <h2>Summary</h2>
-          <div class="summary-grid" id="summary-grid"></div>
+          <div class="summary-root" id="summary-grid"></div>
         </section>
       </section>
 
       <section class="panel chart-panel" aria-label="Projection chart">
         <div class="section-head">
-          <h2>Projection (Today&rsquo;s Dollars)</h2>
-          <p class="helper">Year-by-year inflation-adjusted value across 4 scenarios.</p>
+          <h2 id="projection-title">Projection</h2>
+          <p id="chart-subtitle" class="helper">Year-by-year value across 4 scenarios.</p>
         </div>
         <div id="chart-wrapper" class="chart-wrapper"></div>
         <ul id="chart-legend" class="chart-legend" aria-label="Rate legend"></ul>
@@ -159,6 +184,12 @@
           </table>
         </div>
       </section>
+
+      <footer class="page-footer">
+        <p>
+          Educational projection tool. Estimates are illustrative and not financial advice.
+        </p>
+      </footer>
     </main>
 
     <script type="module" src="./app.js"></script>

@@ -50,25 +50,41 @@ function calculateRealMonthlyRate(annualRate, inflationRate) {
   return Math.pow((1 + annualRate) / (1 + inflationRate), 1 / 12) - 1;
 }
 
+function calculateInflationMonthlyRate(inflationRate) {
+  return Math.pow(1 + inflationRate, 1 / 12) - 1;
+}
+
+function calculateTotalInvestedActual(inputs) {
+  const months = inputs.years * 12;
+  const inflationMonthlyRate = calculateInflationMonthlyRate(inputs.inflationRate);
+  const monthlyTotal = Math.abs(inflationMonthlyRate) < EPSILON
+    ? inputs.monthlyInvestment * months
+    : inputs.monthlyInvestment * ((Math.pow(1 + inflationMonthlyRate, months) - 1) / inflationMonthlyRate);
+  return inputs.initialInvestment + monthlyTotal;
+}
+
 function buildProjectionSeries(inputs) {
   const years = [];
 
   for (let year = 1; year <= inputs.years; year += 1) {
     const row = {
       year,
-      values: [],
+      realValues: [],
+      nominalValues: [],
     };
+    const inflationFactor = Math.pow(1 + inputs.inflationRate, year);
 
     for (let i = 0; i < 4; i += 1) {
       const annualRate = inputs.rates[i];
       const realMonthlyRate = calculateRealMonthlyRate(annualRate, inputs.inflationRate);
-      const value = fvEndOfPeriod(
+      const realValue = fvEndOfPeriod(
         realMonthlyRate,
         year * 12,
         inputs.monthlyInvestment,
         inputs.initialInvestment
       );
-      row.values.push(value);
+      row.realValues.push(realValue);
+      row.nominalValues.push(realValue * inflationFactor);
     }
 
     years.push(row);
@@ -82,15 +98,24 @@ function calculateModel(rawInputs) {
   const projections = buildProjectionSeries(inputs);
   const lastRow = projections[projections.length - 1];
   const totalInvestedToday = inputs.initialInvestment + (inputs.monthlyInvestment * 12 * inputs.years);
+  const totalInvestedActual = calculateTotalInvestedActual(inputs);
 
-  const finalValues = lastRow ? [...lastRow.values] : [0, 0, 0, 0];
-  const timesIncrease = finalValues.map((value) => (
+  const finalValuesReal = lastRow ? [...lastRow.realValues] : [0, 0, 0, 0];
+  const finalValuesNominal = lastRow ? [...lastRow.nominalValues] : [0, 0, 0, 0];
+  const timesIncreaseReal = finalValuesReal.map((value) => (
     totalInvestedToday > 0 ? value / totalInvestedToday : null
   ));
+  const timesIncreaseNominal = finalValuesNominal.map((value) => (
+    totalInvestedActual > 0 ? value / totalInvestedActual : null
+  ));
 
-  const maxFinalValue = Math.max(...finalValues);
-  const averageYearlyIncrease = inputs.years > 0
-    ? (maxFinalValue - totalInvestedToday) / inputs.years
+  const maxFinalValueReal = Math.max(...finalValuesReal);
+  const maxFinalValueNominal = Math.max(...finalValuesNominal);
+  const averageYearlyIncreaseReal = inputs.years > 0
+    ? (maxFinalValueReal - totalInvestedToday) / inputs.years
+    : 0;
+  const averageYearlyIncreaseNominal = inputs.years > 0
+    ? (maxFinalValueNominal - totalInvestedActual) / inputs.years
     : 0;
 
   const warnings = [];
@@ -104,14 +129,18 @@ function calculateModel(rawInputs) {
     warnings,
     totals: {
       totalInvestedToday,
-      averageYearlyIncrease,
+      totalInvestedActual,
+      averageYearlyIncreaseReal,
+      averageYearlyIncreaseNominal,
     },
     scenarios: inputs.rates.map((rate, index) => ({
       index,
       annualRate: rate,
       realMonthlyRate: realMonthlyRates[index],
-      finalValue: finalValues[index],
-      timesIncrease: timesIncrease[index],
+      finalValueReal: finalValuesReal[index],
+      finalValueNominal: finalValuesNominal[index],
+      timesIncreaseReal: timesIncreaseReal[index],
+      timesIncreaseNominal: timesIncreaseNominal[index],
     })),
     projections,
   };

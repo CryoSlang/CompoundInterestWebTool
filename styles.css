@@ -18,10 +18,10 @@
 
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   color: var(--text);
   background: var(--bg);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 h1,
@@ -29,19 +29,48 @@ h2 {
   margin: 0;
 }
 
+h1 {
+  font-size: clamp(1.45rem, 2vw, 1.95rem);
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.22rem;
+}
+
 .app-shell {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: clamp(0.9rem, 2vw, 1.35rem);
 }
 
 .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
   margin-bottom: 1rem;
 }
 
+.page-header-main {
+  max-width: 76ch;
+}
+
 .subtitle {
-  margin: 0.4rem 0 0;
+  margin: 0.45rem 0 0;
   color: var(--muted);
+}
+
+.version-stamp {
+  margin: 0.2rem 0 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #415269;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.34rem 0.58rem;
+  white-space: nowrap;
 }
 
 .top-grid {
@@ -51,11 +80,75 @@ h2 {
   margin-bottom: 1rem;
 }
 
+.output-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.view-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mode-side-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  transition: color 120ms ease;
+}
+
+.mode-side-label.is-active {
+  color: var(--text);
+}
+
+.mode-toggle-switch {
+  width: 54px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid #c8d6eb;
+  background: #eaf2ff;
+  padding: 2px;
+  position: relative;
+}
+
+.mode-toggle-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #c8d6eb;
+  display: block;
+  transform: translateX(0);
+  transition: transform 150ms ease;
+}
+
+.mode-toggle-switch.is-nominal .mode-toggle-thumb {
+  transform: translateX(24px);
+}
+
+.output-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-message {
+  margin-top: 0;
+  margin-bottom: 0.9rem;
+  min-height: 1rem;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 0.6rem;
+  border-radius: 0.75rem;
   padding: 1rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
 }
 
 .helper {
@@ -99,6 +192,11 @@ h2 {
   font-size: 0.95rem;
 }
 
+.field span {
+  font-weight: 600;
+  color: #2d3b4f;
+}
+
 .core-input-grid {
   margin-bottom: 0.8rem;
 }
@@ -124,6 +222,7 @@ h2 {
   border-radius: 0.5rem;
   padding: 0.55rem 0.65rem;
   font-size: 1rem;
+  background: #ffffff;
 }
 
 .field input:focus-visible,
@@ -134,6 +233,8 @@ button:focus-visible {
 
 .actions {
   margin-top: 0.8rem;
+  display: flex;
+  gap: 0.6rem;
 }
 
 button {
@@ -163,6 +264,42 @@ button:hover {
   gap: 0.7rem;
 }
 
+.summary-root {
+  display: block;
+}
+
+.summary-section {
+  margin-bottom: 0.85rem;
+}
+
+.summary-section:last-child {
+  margin-bottom: 0;
+}
+
+.summary-section-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.summary-results-group {
+  border: 1px solid #d9e2f0;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  background: #f8fbff;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.summary-grid > *,
+.results-grid > * {
+  min-width: 0;
+}
+
 .metric-card {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
@@ -173,18 +310,32 @@ button:hover {
   margin: 0;
   color: var(--muted);
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
 }
 
 .metric-value {
   margin: 0.3rem 0 0;
   font-weight: 700;
   font-size: 1.15rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .metric-sub {
   margin: 0.15rem 0 0;
   color: var(--muted);
   font-size: 0.86rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.metric-card--primary {
+  background: #f6faff;
+  border-color: #cfe0f7;
+}
+
+.metric-card--primary .metric-value {
+  font-size: 1.3rem;
 }
 
 .chart-panel {
@@ -273,6 +424,10 @@ td {
 th {
   color: var(--muted);
   font-weight: 700;
+  background: #fbfdff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 tbody tr:nth-child(even) {
@@ -299,12 +454,43 @@ tbody tr:nth-child(even) {
   stroke-width: 1;
 }
 
+.page-footer {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .top-grid {
     grid-template-columns: 1fr;
   }
 
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .version-stamp {
+    margin-top: 0;
+  }
+
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .output-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .view-toggle-group,
+  .output-actions-group {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .results-grid {
     grid-template-columns: 1fr;
   }
 }

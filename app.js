@@ -8,6 +8,7 @@ import {
 } from "./formatters.js";
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
+const APP_VERSION = "v1.2.0";
 
 const dom = {
   form: document.getElementById("calculator-form"),
@@ -19,6 +20,15 @@ const dom = {
   chartLegend: document.getElementById("chart-legend"),
   tableCompactControls: document.getElementById("table-compact-controls"),
   projectionTable: document.getElementById("projection-table"),
+  appVersion: document.getElementById("app-version"),
+  projectionTitle: document.getElementById("projection-title"),
+  chartSubtitle: document.getElementById("chart-subtitle"),
+  actionMessage: document.getElementById("action-message"),
+  viewModeToggle: document.getElementById("view-mode-toggle"),
+  modeRealLabel: document.getElementById("mode-real-label"),
+  modeNominalLabel: document.getElementById("mode-nominal-label"),
+  copyShareButton: document.getElementById("copy-share-link"),
+  downloadCsvButton: document.getElementById("download-csv"),
   rateHeaders: [
     document.getElementById("rate1-header"),
     document.getElementById("rate2-header"),
@@ -40,6 +50,8 @@ const dom = {
 };
 
 let mobileScenarioIndex = 0;
+let viewMode = "real";
+let currentModel = null;
 
 function debounce(fn, waitMs) {
   let timeout = null;
@@ -79,6 +91,11 @@ function parseUrlState() {
     return null;
   }
 
+  const parsedView = params.get("view");
+  if (parsedView === "nominal" || parsedView === "real") {
+    viewMode = parsedView;
+  }
+
   return {
     initialInvestment: Number(params.get("initial") ?? DEFAULT_INPUTS.initialInvestment),
     monthlyInvestment: Number(params.get("monthly") ?? DEFAULT_INPUTS.monthlyInvestment),
@@ -94,14 +111,15 @@ function updateUrl(inputs) {
   params.set("monthly", String(inputs.monthlyInvestment));
   params.set("years", String(inputs.years));
   params.set("inflation", String(inputs.inflationRate * 100));
+  params.set("view", viewMode);
   inputs.rates.forEach((rate, index) => params.set(`rate${index + 1}`, String(rate * 100)));
   const next = `${window.location.pathname}?${params.toString()}`;
   window.history.replaceState({}, "", next);
 }
 
-function buildMetricCard(title, value, subtext) {
+function buildMetricCard(title, value, subtext, className = "") {
   const article = document.createElement("article");
-  article.className = "metric-card";
+  article.className = `metric-card ${className}`.trim();
 
   const h3 = document.createElement("p");
   h3.className = "metric-title";
@@ -121,30 +139,63 @@ function buildMetricCard(title, value, subtext) {
 
 function renderSummary(model) {
   dom.summaryGrid.innerHTML = "";
-  dom.summaryGrid.append(
+  const topSection = document.createElement("section");
+  topSection.className = "summary-section";
+  const topGrid = document.createElement("div");
+  topGrid.className = "summary-grid";
+
+  const totalInvestedCard = buildMetricCard(
+    "Total Invested (today's $)",
+    formatCurrency(model.totals.totalInvestedToday),
+    `${formatInteger(model.inputs.years)} years`,
+    viewMode === "real" ? "metric-card--primary" : ""
+  );
+  topGrid.append(totalInvestedCard);
+
+  topGrid.append(
     buildMetricCard(
-      "Total Invested (today's $)",
-      formatCurrency(model.totals.totalInvestedToday),
-      `${formatInteger(model.inputs.years)} years`
+      "Total Invested (actual $)",
+      formatCurrency(model.totals.totalInvestedActual),
+      "Nominal contributions inflated over time",
+      viewMode === "nominal" ? "metric-card--primary" : ""
     )
   );
 
-  model.scenarios.forEach((scenario, index) => {
-    const title = `Result at ${formatPercent(scenario.annualRate)}`;
-    const value = formatCurrency(scenario.finalValue);
-    const sub = `Times increase: ${formatRatio(scenario.timesIncrease)} | Real monthly rate: ${formatPercent(scenario.realMonthlyRate)}`;
-    dom.summaryGrid.append(buildMetricCard(title, value, sub));
-
-    dom.rateHeaders[index].textContent = `Rate ${index + 1} (${formatPercent(scenario.annualRate)})`;
-  });
-
-  dom.summaryGrid.append(
+  const avgYearly = viewMode === "real"
+    ? model.totals.averageYearlyIncreaseReal
+    : model.totals.averageYearlyIncreaseNominal;
+  topGrid.append(
     buildMetricCard(
       "Average Yearly Increase",
-      formatCurrency(model.totals.averageYearlyIncrease),
+      formatCurrency(avgYearly),
       "Based on highest-rate scenario (worksheet method)"
     )
   );
+  topSection.append(topGrid);
+
+  const resultsSection = document.createElement("section");
+  resultsSection.className = "summary-section summary-results-group";
+  const sectionTitle = document.createElement("p");
+  sectionTitle.className = "summary-section-title";
+  sectionTitle.textContent = "Results by Scenario";
+  resultsSection.append(sectionTitle);
+  const resultsGrid = document.createElement("div");
+  resultsGrid.className = "results-grid";
+
+  model.scenarios.forEach((scenario, index) => {
+    const title = `Result at ${formatPercent(scenario.annualRate)}`;
+    const value = viewMode === "real"
+      ? formatCurrency(scenario.finalValueReal)
+      : formatCurrency(scenario.finalValueNominal);
+    const increase = viewMode === "real" ? scenario.timesIncreaseReal : scenario.timesIncreaseNominal;
+    const sub = `Times increase: ${formatRatio(increase)} | Real monthly rate: ${formatPercent(scenario.realMonthlyRate)}`;
+    resultsGrid.append(buildMetricCard(title, value, sub));
+
+    dom.rateHeaders[index].textContent = `Rate ${index + 1} (${formatPercent(scenario.annualRate)})`;
+  });
+  resultsSection.append(resultsGrid);
+
+  dom.summaryGrid.append(topSection, resultsSection);
 }
 
 function renderTable(model) {
@@ -156,7 +207,8 @@ function renderTable(model) {
     yearTd.textContent = formatInteger(row.year);
     tr.append(yearTd);
 
-    row.values.forEach((value) => {
+    const values = viewMode === "real" ? row.realValues : row.nominalValues;
+    values.forEach((value) => {
       const td = document.createElement("td");
       td.textContent = formatCurrency(value);
       tr.append(td);
@@ -202,7 +254,10 @@ function renderChart(model) {
   const plotHeight = height - margin.top - margin.bottom;
 
   const rows = model.projections;
-  const maxY = Math.max(...rows.flatMap((row) => row.values), 1);
+  const maxY = Math.max(
+    ...rows.flatMap((row) => (viewMode === "real" ? row.realValues : row.nominalValues)),
+    1
+  );
   const xMax = Math.max(rows.length - 1, 1);
 
   const toX = (index) => margin.left + ((index / xMax) * plotWidth);
@@ -213,7 +268,10 @@ function renderChart(model) {
   svg.setAttribute("class", "chart-svg");
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Line chart of inflation-adjusted value by year across four annual rates.");
+  const ariaLabel = viewMode === "real"
+    ? "Line chart of inflation-adjusted value by year across four annual rates."
+    : "Line chart of nominal value by year across four annual rates.";
+  svg.setAttribute("aria-label", ariaLabel);
 
   const yTicks = 5;
   for (let i = 0; i <= yTicks; i += 1) {
@@ -252,9 +310,9 @@ function renderChart(model) {
   model.scenarios.forEach((scenario, scenarioIndex) => {
     const points = rows.map((row, rowIndex) => ({
       x: toX(rowIndex),
-      y: toY(row.values[scenarioIndex]),
+      y: toY((viewMode === "real" ? row.realValues : row.nominalValues)[scenarioIndex]),
       year: row.year,
-      value: row.values[scenarioIndex],
+      value: (viewMode === "real" ? row.realValues : row.nominalValues)[scenarioIndex],
     }));
 
     const path = document.createElementNS(svgNs, "path");
@@ -293,11 +351,82 @@ function renderChart(model) {
     swatch.style.backgroundColor = RATE_COLORS[idx];
 
     const text = document.createElement("span");
-    text.textContent = `${formatPercent(scenario.annualRate)} | Final ${formatCurrency(scenario.finalValue)}`;
+    const finalValue = viewMode === "real" ? scenario.finalValueReal : scenario.finalValueNominal;
+    text.textContent = `${formatPercent(scenario.annualRate)} | Final ${formatCurrency(finalValue)}`;
 
     li.append(swatch, text);
     dom.chartLegend.append(li);
   });
+}
+
+function renderViewModeUi() {
+  const isReal = viewMode === "real";
+  dom.viewModeToggle.classList.toggle("is-nominal", !isReal);
+  dom.viewModeToggle.setAttribute("aria-checked", String(!isReal));
+  dom.modeRealLabel.classList.toggle("is-active", isReal);
+  dom.modeNominalLabel.classList.toggle("is-active", !isReal);
+  dom.projectionTitle.textContent = isReal
+    ? "Projection (Today’s Dollars)"
+    : "Projection (Nominal Dollars)";
+  dom.chartSubtitle.textContent = isReal
+    ? "Year-by-year inflation-adjusted value across 4 scenarios."
+    : "Year-by-year nominal value across 4 scenarios.";
+}
+
+function escapeCsvValue(value) {
+  const raw = String(value ?? "");
+  if (raw.includes(",") || raw.includes("\"") || raw.includes("\n")) {
+    return `"${raw.replaceAll("\"", "\"\"")}"`;
+  }
+  return raw;
+}
+
+function buildCsv(model) {
+  const rows = [];
+  rows.push(["Mode", viewMode === "real" ? "Real (today's $)" : "Nominal (actual $)"]);
+  rows.push(["Initial Investment", model.inputs.initialInvestment]);
+  rows.push(["Monthly Investment", model.inputs.monthlyInvestment]);
+  rows.push(["Years", model.inputs.years]);
+  rows.push(["Inflation Rate", model.inputs.inflationRate]);
+  rows.push(["Total Invested (today's $)", model.totals.totalInvestedToday]);
+  rows.push(["Total Invested (actual $)", model.totals.totalInvestedActual]);
+  rows.push([]);
+  rows.push([
+    "Year",
+    ...model.scenarios.map((scenario) => `Rate ${formatPercent(scenario.annualRate)}`),
+  ]);
+  model.projections.forEach((row) => {
+    const values = viewMode === "real" ? row.realValues : row.nominalValues;
+    rows.push([row.year, ...values.map((value) => Number(value.toFixed(2)))]);
+  });
+
+  return rows.map((row) => row.map(escapeCsvValue).join(",")).join("\n");
+}
+
+function downloadCsv() {
+  if (!currentModel) {
+    return;
+  }
+  const csv = buildCsv(currentModel);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const suffix = viewMode === "real" ? "real" : "nominal";
+  link.href = URL.createObjectURL(blob);
+  link.download = `compound-interest-${suffix}.csv`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+  dom.actionMessage.textContent = "CSV download started.";
+}
+
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    dom.actionMessage.textContent = "Share link copied to clipboard.";
+  } catch (_err) {
+    dom.actionMessage.textContent = "Clipboard copy failed. Copy the URL from your browser address bar.";
+  }
 }
 
 function showWarnings(model) {
@@ -313,6 +442,8 @@ function renderAll() {
   const raw = readRawInputs();
   const normalized = normalizeInputs(raw);
   const model = calculateModel(normalized);
+  currentModel = model;
+  renderViewModeUi();
   renderSummary(model);
   renderTable(model);
   renderMobileTableControls(model);
@@ -325,6 +456,12 @@ const debouncedRender = debounce(renderAll, 150);
 
 function bindEvents() {
   dom.form.addEventListener("input", debouncedRender);
+  dom.viewModeToggle.addEventListener("click", () => {
+    viewMode = viewMode === "real" ? "nominal" : "real";
+    renderAll();
+  });
+  dom.copyShareButton.addEventListener("click", copyShareLink);
+  dom.downloadCsvButton.addEventListener("click", downloadCsv);
   dom.resetButton.addEventListener("click", () => {
     populateForm(DEFAULT_INPUTS);
     renderAll();
@@ -335,6 +472,7 @@ function boot() {
   const fromUrl = parseUrlState();
   const initial = normalizeInputs(fromUrl || DEFAULT_INPUTS);
   populateForm(initial);
+  dom.appVersion.textContent = `Version ${APP_VERSION}`;
   bindEvents();
   renderAll();
 }
