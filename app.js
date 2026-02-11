@@ -199,8 +199,23 @@ function renderSummary(model) {
 }
 
 function renderTable(model) {
+  const milestones = [100000, 500000, 1000000];
+  const firstHitsByScenario = [new Map(), new Map(), new Map(), new Map()];
+  const seriesKey = viewMode === "real" ? "realValues" : "nominalValues";
+
+  model.projections.forEach((row, rowIndex) => {
+    row[seriesKey].forEach((value, scenarioIndex) => {
+      milestones.forEach((target) => {
+        const existing = firstHitsByScenario[scenarioIndex].get(target);
+        if (existing === undefined && value >= target) {
+          firstHitsByScenario[scenarioIndex].set(target, rowIndex);
+        }
+      });
+    });
+  });
+
   const frag = document.createDocumentFragment();
-  model.projections.forEach((row) => {
+  model.projections.forEach((row, rowIndex) => {
     const tr = document.createElement("tr");
 
     const yearTd = document.createElement("td");
@@ -208,9 +223,16 @@ function renderTable(model) {
     tr.append(yearTd);
 
     const values = viewMode === "real" ? row.realValues : row.nominalValues;
-    values.forEach((value) => {
+    values.forEach((value, scenarioIndex) => {
       const td = document.createElement("td");
       td.textContent = formatCurrency(value);
+      const crossedMilestones = milestones.filter(
+        (target) => firstHitsByScenario[scenarioIndex].get(target) === rowIndex
+      );
+      if (crossedMilestones.length > 0) {
+        td.classList.add("milestone-hit");
+        td.title = `First crossed: ${crossedMilestones.map((m) => formatCurrency(m)).join(", ")}`;
+      }
       tr.append(td);
     });
 

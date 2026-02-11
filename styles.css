@@ -434,6 +434,12 @@ tbody tr:nth-child(even) {
   background: #fafcff;
 }
 
+.milestone-hit {
+  background: #dff5e5;
+  color: #124f28;
+  font-weight: 700;
+}
+
 .axis-label {
   fill: var(--muted);
   font-size: 12px;
