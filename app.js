@@ -52,6 +52,12 @@ const dom = {
 let mobileScenarioIndex = 0;
 let viewMode = "real";
 let currentModel = null;
+const HEAT_STOPS = [
+  { t: 0, color: [253, 226, 226] },   // light red
+  { t: 0.1, color: [255, 232, 194] }, // amber near 100k
+  { t: 0.5, color: [255, 246, 207] }, // yellow near 500k
+  { t: 1, color: [223, 245, 229] },   // light green
+];
 
 function debounce(fn, waitMs) {
   let timeout = null;
@@ -63,6 +69,40 @@ function debounce(fn, waitMs) {
 
 function percentToInput(rate) {
   return (rate * 100).toFixed(2).replace(/\.00$/, "");
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function lerp(a, b, t) {
+  return a + ((b - a) * t);
+}
+
+function toRgbString(rgb) {
+  return `rgb(${Math.round(rgb[0])}, ${Math.round(rgb[1])}, ${Math.round(rgb[2])})`;
+}
+
+function interpolateHeatColor(normalizedValue) {
+  const t = clamp(normalizedValue, 0, 1);
+  for (let i = 0; i < HEAT_STOPS.length - 1; i += 1) {
+    const start = HEAT_STOPS[i];
+    const end = HEAT_STOPS[i + 1];
+    if (t >= start.t && t <= end.t) {
+      const localT = (t - start.t) / (end.t - start.t);
+      return toRgbString([
+        lerp(start.color[0], end.color[0], localT),
+        lerp(start.color[1], end.color[1], localT),
+        lerp(start.color[2], end.color[2], localT),
+      ]);
+    }
+  }
+  return toRgbString(HEAT_STOPS[HEAT_STOPS.length - 1].color);
+}
+
+function getHeatColorForValue(value) {
+  const normalized = value / 1000000;
+  return interpolateHeatColor(normalized);
 }
 
 function populateForm(inputs) {
@@ -225,19 +265,22 @@ function renderTable(model) {
     const values = viewMode === "real" ? row.realValues : row.nominalValues;
     values.forEach((value, scenarioIndex) => {
       const td = document.createElement("td");
+      td.classList.add("table-value-cell");
       td.textContent = formatCurrency(value);
+      td.style.backgroundColor = getHeatColorForValue(value);
+      td.style.color = "#1f2937";
       const crossedMilestones = milestones.filter(
         (target) => firstHitsByScenario[scenarioIndex].get(target) === rowIndex
       );
       if (crossedMilestones.length > 0) {
-        td.classList.add("milestone-hit");
+        td.classList.add("milestone-marker");
         const highestMilestone = Math.max(...crossedMilestones);
         if (highestMilestone >= 1000000) {
-          td.classList.add("milestone-1m");
+          td.classList.add("milestone-marker-1m");
         } else if (highestMilestone >= 500000) {
-          td.classList.add("milestone-500k");
+          td.classList.add("milestone-marker-500k");
         } else {
-          td.classList.add("milestone-100k");
+          td.classList.add("milestone-marker-100k");
         }
         td.title = `First crossed: ${crossedMilestones.map((m) => formatCurrency(m)).join(", ")}`;
       }

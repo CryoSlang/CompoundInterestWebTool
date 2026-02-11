@@ -434,23 +434,25 @@ tbody tr:nth-child(even) {
   background: #fafcff;
 }
 
-.milestone-hit {
-  font-weight: 700;
+.table-value-cell {
+  font-weight: 600;
+  transition: background-color 120ms ease;
 }
 
-.milestone-100k {
-  background: #fff6cf;
-  color: #5f4b06;
+.milestone-marker {
+  position: relative;
 }
 
-.milestone-500k {
-  background: #ffe8c2;
-  color: #6a3f00;
+.milestone-marker-100k {
+  box-shadow: inset 3px 0 0 #c29a0d;
 }
 
-.milestone-1m {
-  background: #dff5e5;
-  color: #124f28;
+.milestone-marker-500k {
+  box-shadow: inset 5px 0 0 #b96b00;
+}
+
+.milestone-marker-1m {
+  box-shadow: inset 7px 0 0 #198754;
 }
 
 .axis-label {
@@ -523,11 +525,13 @@ tbody tr:nth-child(even) {
     display: flex;
   }
 
-  #projection-table th:nth-child(n + 3),
-  #projection-table td:nth-child(n + 3) {
+  #projection-table th:nth-child(n + 2),
+  #projection-table td:nth-child(n + 2) {
     display: none;
   }
 
+  #projection-table[data-mobile-scenario="0"] th:nth-child(2),
+  #projection-table[data-mobile-scenario="0"] td:nth-child(2),
   #projection-table[data-mobile-scenario="1"] th:nth-child(3),
   #projection-table[data-mobile-scenario="1"] td:nth-child(3),
   #projection-table[data-mobile-scenario="2"] th:nth-child(4),
