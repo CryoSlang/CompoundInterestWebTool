@@ -23,12 +23,22 @@
         <form id="calculator-form" class="panel input-panel" novalidate>
           <h2>Inputs</h2>
           <p id="assumption-text" class="helper">
-            Real monthly rate formula:
-            <code>((1 + annualRate) / (1 + inflationRate))^(1/12) - 1</code>.
-            Monthly contributions are assumed to keep constant purchasing power.
+            Results are shown in today&rsquo;s dollars. The calculator adjusts each annual return
+            for inflation and compounds monthly over your selected timeline.
           </p>
+          <details class="math-details">
+            <summary>Show calculation details</summary>
+            <p>
+              Real monthly rate:
+              <code>((1 + annualRate) / (1 + inflationRate))^(1/12) - 1</code>
+            </p>
+            <p>
+              Future value per year uses end-of-month contributions and the worksheet-aligned
+              inflation-adjusted monthly compounding model.
+            </p>
+          </details>
 
-          <div class="form-grid">
+          <div class="form-grid core-input-grid">
             <label class="field">
               <span>Initial investment</span>
               <input
@@ -80,7 +90,11 @@
                 aria-describedby="assumption-text"
               />
             </label>
+          </div>
 
+          <fieldset class="rates-group" aria-describedby="assumption-text">
+            <legend>Return scenarios (annual %)</legend>
+            <div class="form-grid rates-input-grid">
             <label class="field">
               <span>Rate 1 (%)</span>
               <input id="rate1" name="rate1" type="number" inputmode="decimal" step="0.1" />
@@ -100,7 +114,8 @@
               <span>Rate 4 (%)</span>
               <input id="rate4" name="rate4" type="number" inputmode="decimal" step="0.1" />
             </label>
-          </div>
+            </div>
+          </fieldset>
 
           <div class="actions">
             <button id="reset-button" type="button">Reset defaults</button>
@@ -128,8 +143,9 @@
         <div class="section-head">
           <h2>Year-by-Year Table</h2>
         </div>
+        <div class="table-compact-controls" id="table-compact-controls" aria-label="Mobile table scenario selection"></div>
         <div class="table-scroll">
-          <table>
+          <table id="projection-table" data-mobile-scenario="0">
             <thead>
               <tr>
                 <th scope="col">Year</th>

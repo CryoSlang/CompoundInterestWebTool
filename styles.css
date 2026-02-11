@@ -69,6 +69,23 @@ h2 {
   font-size: 0.9em;
 }
 
+.math-details {
+  margin-bottom: 0.9rem;
+}
+
+.math-details summary {
+  cursor: pointer;
+  color: var(--focus);
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+
+.math-details p {
+  margin: 0.3rem 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -80,6 +97,26 @@ h2 {
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.95rem;
+}
+
+.core-input-grid {
+  margin-bottom: 0.8rem;
+}
+
+.rates-group {
+  margin: 0;
+  margin-top: 0.2rem;
+  border: 1px solid #d9e2f0;
+  border-radius: 0.6rem;
+  padding: 0.8rem;
+  background: #f8fbff;
+}
+
+.rates-group legend {
+  padding: 0 0.35rem;
+  color: #32455f;
+  font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .field input {
@@ -196,6 +233,29 @@ button:hover {
   overflow-x: auto;
 }
 
+.table-compact-controls {
+  display: none;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.compact-scenario-button {
+  border: 1px solid var(--border);
+  background: #f8fbff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compact-scenario-button.is-active {
+  border-color: var(--focus);
+  background: #eaf2ff;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -252,5 +312,23 @@ tbody tr:nth-child(even) {
 @media (max-width: 640px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .table-compact-controls {
+    display: flex;
+  }
+
+  #projection-table th:nth-child(n + 3),
+  #projection-table td:nth-child(n + 3) {
+    display: none;
+  }
+
+  #projection-table[data-mobile-scenario="1"] th:nth-child(3),
+  #projection-table[data-mobile-scenario="1"] td:nth-child(3),
+  #projection-table[data-mobile-scenario="2"] th:nth-child(4),
+  #projection-table[data-mobile-scenario="2"] td:nth-child(4),
+  #projection-table[data-mobile-scenario="3"] th:nth-child(5),
+  #projection-table[data-mobile-scenario="3"] td:nth-child(5) {
+    display: table-cell;
   }
 }

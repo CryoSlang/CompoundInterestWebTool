@@ -17,6 +17,8 @@ const dom = {
   tableBody: document.getElementById("projection-table-body"),
   chartWrapper: document.getElementById("chart-wrapper"),
   chartLegend: document.getElementById("chart-legend"),
+  tableCompactControls: document.getElementById("table-compact-controls"),
+  projectionTable: document.getElementById("projection-table"),
   rateHeaders: [
     document.getElementById("rate1-header"),
     document.getElementById("rate2-header"),
@@ -36,6 +38,8 @@ const dom = {
     ],
   },
 };
+
+let mobileScenarioIndex = 0;
 
 function debounce(fn, waitMs) {
   let timeout = null;
@@ -165,6 +169,25 @@ function renderTable(model) {
   dom.tableBody.append(frag);
 }
 
+function renderMobileTableControls(model) {
+  dom.tableCompactControls.innerHTML = "";
+  model.scenarios.forEach((scenario, idx) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `compact-scenario-button${idx === mobileScenarioIndex ? " is-active" : ""}`;
+    button.textContent = `${idx + 1}: ${formatPercent(scenario.annualRate)}`;
+    button.setAttribute("aria-pressed", idx === mobileScenarioIndex ? "true" : "false");
+    button.addEventListener("click", () => {
+      mobileScenarioIndex = idx;
+      dom.projectionTable.setAttribute("data-mobile-scenario", String(idx));
+      renderMobileTableControls(model);
+    });
+    dom.tableCompactControls.append(button);
+  });
+
+  dom.projectionTable.setAttribute("data-mobile-scenario", String(mobileScenarioIndex));
+}
+
 function buildLinePath(points) {
   return points
     .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
@@ -240,21 +263,21 @@ function renderChart(model) {
     path.setAttribute("stroke", RATE_COLORS[scenarioIndex]);
     svg.append(path);
 
-    points.forEach((point) => {
+    const finalPoint = points[points.length - 1];
+    if (finalPoint) {
       const dot = document.createElementNS(svgNs, "circle");
-      dot.setAttribute("cx", String(point.x));
-      dot.setAttribute("cy", String(point.y));
-      dot.setAttribute("r", "3");
+      dot.setAttribute("cx", String(finalPoint.x));
+      dot.setAttribute("cy", String(finalPoint.y));
+      dot.setAttribute("r", "4");
       dot.setAttribute("class", "series-point");
       dot.setAttribute("fill", RATE_COLORS[scenarioIndex]);
-      dot.setAttribute("tabindex", "0");
 
       const title = document.createElementNS(svgNs, "title");
-      title.textContent = `${formatPercent(scenario.annualRate)} - Year ${point.year}: ${formatCurrency(point.value)}`;
+      title.textContent = `${formatPercent(scenario.annualRate)} - Year ${finalPoint.year}: ${formatCurrency(finalPoint.value)}`;
       dot.append(title);
 
       svg.append(dot);
-    });
+    }
   });
 
   dom.chartWrapper.innerHTML = "";
@@ -292,6 +315,7 @@ function renderAll() {
   const model = calculateModel(normalized);
   renderSummary(model);
   renderTable(model);
+  renderMobileTableControls(model);
   renderChart(model);
   showWarnings(model);
   updateUrl(model.inputs);
