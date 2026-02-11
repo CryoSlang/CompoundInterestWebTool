@@ -8,8 +8,8 @@ import {
 } from "./formatters.js";
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
-const APP_VERSION = "v1.4.0";
-const STARBUCKS_COFFEE_COST = 3.75;
+const APP_VERSION = "v1.4.1";
+const TAKEOUT_DINNER_FOR_TWO_COST = 40;
 
 const dom = {
   form: document.getElementById("calculator-form"),
@@ -109,12 +109,12 @@ function getHeatColorForValue(value) {
 }
 
 function updateCoffeeEquivalent(monthlyInvestment) {
-  const coffees = monthlyInvestment / STARBUCKS_COFFEE_COST;
+  const dinners = monthlyInvestment / TAKEOUT_DINNER_FOR_TWO_COST;
   const formatter = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   });
-  dom.coffeeEquivalentNote.textContent = `${formatter.format(coffees)} Starbucks Coffees`;
+  dom.coffeeEquivalentNote.textContent = `${formatter.format(dinners)} takeout dinners for 2`;
 }
 
 function populateForm(inputs) {
