@@ -8,7 +8,7 @@ import {
 } from "./formatters.js";
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
-const APP_VERSION = "v1.3.0";
+const APP_VERSION = "v1.4.0";
 const STARBUCKS_COFFEE_COST = 3.75;
 
 const dom = {
