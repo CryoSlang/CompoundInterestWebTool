@@ -9,6 +9,7 @@ import {
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
 const APP_VERSION = "v1.3.0";
+const STARBUCKS_COFFEE_COST = 3.75;
 
 const dom = {
   form: document.getElementById("calculator-form"),
@@ -29,6 +30,7 @@ const dom = {
   modeNominalLabel: document.getElementById("mode-nominal-label"),
   copyShareButton: document.getElementById("copy-share-link"),
   downloadCsvButton: document.getElementById("download-csv"),
+  coffeeEquivalentNote: document.getElementById("coffee-equivalent-note"),
   rateHeaders: [
     document.getElementById("rate1-header"),
     document.getElementById("rate2-header"),
@@ -39,6 +41,7 @@ const dom = {
     initialInvestment: document.getElementById("initialInvestment"),
     monthlyInvestment: document.getElementById("monthlyInvestment"),
     years: document.getElementById("years"),
+    contributionYears: document.getElementById("contributionYears"),
     inflationRate: document.getElementById("inflationRate"),
     rates: [
       document.getElementById("rate1"),
@@ -105,10 +108,20 @@ function getHeatColorForValue(value) {
   return interpolateHeatColor(normalized);
 }
 
+function updateCoffeeEquivalent(monthlyInvestment) {
+  const coffees = monthlyInvestment / STARBUCKS_COFFEE_COST;
+  const formatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  dom.coffeeEquivalentNote.textContent = `${formatter.format(coffees)} Starbucks Coffees`;
+}
+
 function populateForm(inputs) {
   dom.inputs.initialInvestment.value = String(inputs.initialInvestment);
   dom.inputs.monthlyInvestment.value = String(inputs.monthlyInvestment);
   dom.inputs.years.value = String(inputs.years);
+  dom.inputs.contributionYears.value = String(inputs.contributionYears);
   dom.inputs.inflationRate.value = percentToInput(inputs.inflationRate);
   inputs.rates.forEach((rate, index) => {
     dom.inputs.rates[index].value = percentToInput(rate);
@@ -120,6 +133,7 @@ function readRawInputs() {
     initialInvestment: Number(dom.inputs.initialInvestment.value),
     monthlyInvestment: Number(dom.inputs.monthlyInvestment.value),
     years: Number(dom.inputs.years.value),
+    contributionYears: Number(dom.inputs.contributionYears.value),
     inflationRate: Number(dom.inputs.inflationRate.value) / 100,
     rates: dom.inputs.rates.map((input) => Number(input.value) / 100),
   };
@@ -140,6 +154,7 @@ function parseUrlState() {
     initialInvestment: Number(params.get("initial") ?? DEFAULT_INPUTS.initialInvestment),
     monthlyInvestment: Number(params.get("monthly") ?? DEFAULT_INPUTS.monthlyInvestment),
     years: Number(params.get("years") ?? DEFAULT_INPUTS.years),
+    contributionYears: Number(params.get("contribute") ?? DEFAULT_INPUTS.contributionYears),
     inflationRate: Number(params.get("inflation") ?? (DEFAULT_INPUTS.inflationRate * 100)) / 100,
     rates: [1, 2, 3, 4].map((i) => Number(params.get(`rate${i}`) ?? (DEFAULT_INPUTS.rates[i - 1] * 100)) / 100),
   };
@@ -150,6 +165,7 @@ function updateUrl(inputs) {
   params.set("initial", String(inputs.initialInvestment));
   params.set("monthly", String(inputs.monthlyInvestment));
   params.set("years", String(inputs.years));
+  params.set("contribute", String(inputs.contributionYears));
   params.set("inflation", String(inputs.inflationRate * 100));
   params.set("view", viewMode);
   inputs.rates.forEach((rate, index) => params.set(`rate${index + 1}`, String(rate * 100)));
@@ -187,7 +203,7 @@ function renderSummary(model) {
   const totalInvestedCard = buildMetricCard(
     "Total Invested (today's $)",
     formatCurrency(model.totals.totalInvestedToday),
-    `${formatInteger(model.inputs.years)} years`,
+    `${formatInteger(model.inputs.years)} years | contributing ${formatInteger(model.inputs.contributionYears)} years`,
     viewMode === "real" ? "metric-card--primary" : ""
   );
   topGrid.append(totalInvestedCard);
@@ -462,6 +478,7 @@ function buildCsv(model) {
   rows.push(["Initial Investment", model.inputs.initialInvestment]);
   rows.push(["Monthly Investment", model.inputs.monthlyInvestment]);
   rows.push(["Years", model.inputs.years]);
+  rows.push(["Stop contributions after (years)", model.inputs.contributionYears]);
   rows.push(["Inflation Rate", model.inputs.inflationRate]);
   rows.push(["Total Invested (today's $)", model.totals.totalInvestedToday]);
   rows.push(["Total Invested (actual $)", model.totals.totalInvestedActual]);
@@ -509,6 +526,9 @@ function showWarnings(model) {
   if (model.inputs.years < MIN_YEARS || model.inputs.years > MAX_YEARS) {
     warnings.push(`Years are clamped to ${MIN_YEARS}-${MAX_YEARS}.`);
   }
+  if (model.inputs.contributionYears > model.inputs.years) {
+    warnings.push("Contribution years cannot exceed projection years.");
+  }
   warnings.push(...model.warnings);
   dom.warning.textContent = warnings.join(" ");
 }
@@ -518,6 +538,7 @@ function renderAll() {
   const normalized = normalizeInputs(raw);
   const model = calculateModel(normalized);
   currentModel = model;
+  updateCoffeeEquivalent(model.inputs.monthlyInvestment);
   renderViewModeUi();
   renderSummary(model);
   renderTable(model);

@@ -197,6 +197,12 @@ h2 {
   color: #2d3b4f;
 }
 
+.field-note {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .core-input-grid {
   margin-bottom: 0.8rem;
 }

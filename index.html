@@ -88,10 +88,11 @@
                 step="10"
                 aria-describedby="assumption-text"
               />
+              <span id="coffee-equivalent-note" class="field-note" aria-live="polite"></span>
             </label>
 
             <label class="field">
-              <span>Years</span>
+              <span>Projection length (years)</span>
               <input
                 id="years"
                 name="years"
@@ -102,6 +103,23 @@
                 step="1"
                 aria-describedby="validation-message"
               />
+            </label>
+
+            <label class="field">
+              <span>Stop contributions after (years)</span>
+              <input
+                id="contributionYears"
+                name="contributionYears"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="60"
+                step="1"
+                aria-describedby="assumption-text validation-message"
+              />
+              <span class="field-note">
+                Monthly contributions are added for this many years, then growth continues with no new contributions.
+              </span>
             </label>
 
             <label class="field">
