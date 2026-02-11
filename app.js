@@ -231,6 +231,14 @@ function renderTable(model) {
       );
       if (crossedMilestones.length > 0) {
         td.classList.add("milestone-hit");
+        const highestMilestone = Math.max(...crossedMilestones);
+        if (highestMilestone >= 1000000) {
+          td.classList.add("milestone-1m");
+        } else if (highestMilestone >= 500000) {
+          td.classList.add("milestone-500k");
+        } else {
+          td.classList.add("milestone-100k");
+        }
         td.title = `First crossed: ${crossedMilestones.map((m) => formatCurrency(m)).join(", ")}`;
       }
       tr.append(td);

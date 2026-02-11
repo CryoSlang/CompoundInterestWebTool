@@ -435,9 +435,22 @@ tbody tr:nth-child(even) {
 }
 
 .milestone-hit {
+  font-weight: 700;
+}
+
+.milestone-100k {
+  background: #fff6cf;
+  color: #5f4b06;
+}
+
+.milestone-500k {
+  background: #ffe8c2;
+  color: #6a3f00;
+}
+
+.milestone-1m {
   background: #dff5e5;
   color: #124f28;
-  font-weight: 700;
 }
 
 .axis-label {
