@@ -50,6 +50,10 @@ function calculateRealMonthlyRate(annualRate, inflationRate) {
   return Math.pow((1 + annualRate) / (1 + inflationRate), 1 / 12) - 1;
 }
 
+function calculateNominalMonthlyRate(annualRate) {
+  return Math.pow(1 + annualRate, 1 / 12) - 1;
+}
+
 function calculateInflationMonthlyRate(inflationRate) {
   return Math.pow(1 + inflationRate, 1 / 12) - 1;
 }
@@ -120,6 +124,7 @@ function calculateModel(rawInputs) {
 
   const warnings = [];
   const realMonthlyRates = inputs.rates.map((rate) => calculateRealMonthlyRate(rate, inputs.inflationRate));
+  const nominalMonthlyRates = inputs.rates.map((rate) => calculateNominalMonthlyRate(rate));
   if (realMonthlyRates.some((rate) => rate < 0)) {
     warnings.push("One or more real monthly rates are negative (inflation exceeds annual return).");
   }
@@ -137,6 +142,7 @@ function calculateModel(rawInputs) {
       index,
       annualRate: rate,
       realMonthlyRate: realMonthlyRates[index],
+      nominalMonthlyRate: nominalMonthlyRates[index],
       finalValueReal: finalValuesReal[index],
       finalValueNominal: finalValuesNominal[index],
       timesIncreaseReal: timesIncreaseReal[index],

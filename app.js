@@ -8,7 +8,7 @@ import {
 } from "./formatters.js";
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
-const APP_VERSION = "v1.2.0";
+const APP_VERSION = "v1.3.0";
 
 const dom = {
   form: document.getElementById("calculator-form"),
@@ -228,7 +228,9 @@ function renderSummary(model) {
       ? formatCurrency(scenario.finalValueReal)
       : formatCurrency(scenario.finalValueNominal);
     const increase = viewMode === "real" ? scenario.timesIncreaseReal : scenario.timesIncreaseNominal;
-    const sub = `Times increase: ${formatRatio(increase)} | Real monthly rate: ${formatPercent(scenario.realMonthlyRate)}`;
+    const monthlyRateLabel = viewMode === "real" ? "Real monthly rate" : "Nominal monthly rate";
+    const monthlyRateValue = viewMode === "real" ? scenario.realMonthlyRate : scenario.nominalMonthlyRate;
+    const sub = `Times increase: ${formatRatio(increase)} | ${monthlyRateLabel}: ${formatPercent(monthlyRateValue)}`;
     resultsGrid.append(buildMetricCard(title, value, sub));
 
     dom.rateHeaders[index].textContent = `Rate ${index + 1} (${formatPercent(scenario.annualRate)})`;
