@@ -47,6 +47,19 @@
       <section class="top-grid" aria-label="Inputs and summary">
         <form id="calculator-form" class="panel input-panel" novalidate>
           <h2>Inputs</h2>
+          <div class="advanced-toggle-row">
+            <span class="advanced-toggle-label">Show advanced</span>
+            <button
+              id="show-advanced"
+              class="advanced-toggle-switch"
+              type="button"
+              role="switch"
+              aria-checked="false"
+              aria-label="Toggle advanced inputs"
+            >
+              <span class="advanced-toggle-thumb"></span>
+            </button>
+          </div>
           <p id="assumption-text" class="helper">
             Results are shown in today&rsquo;s dollars. The calculator adjusts each annual return
             for inflation and compounds monthly over your selected timeline.
@@ -65,7 +78,7 @@
 
           <div class="form-grid core-input-grid">
             <label class="field">
-              <span>Initial investment</span>
+              <span>Initial contribution</span>
               <input
                 id="initialInvestment"
                 name="initialInvestment"
@@ -78,7 +91,7 @@
             </label>
 
             <label class="field">
-              <span>Monthly investment</span>
+              <span>Monthly contribution</span>
               <input
                 id="monthlyInvestment"
                 name="monthlyInvestment"
@@ -88,6 +101,7 @@
                 step="10"
                 aria-describedby="assumption-text"
               />
+              <span class="field-note">Will increase with inflation</span>
               <span id="coffee-equivalent-note" class="field-note" aria-live="polite"></span>
             </label>
 
@@ -106,23 +120,6 @@
             </label>
 
             <label class="field">
-              <span>Stop contributions after (years)</span>
-              <input
-                id="contributionYears"
-                name="contributionYears"
-                type="number"
-                inputmode="numeric"
-                min="0"
-                max="60"
-                step="1"
-                aria-describedby="assumption-text validation-message"
-              />
-              <span class="field-note">
-                Monthly contributions are added for this many years, then stop.
-              </span>
-            </label>
-
-            <label class="field">
               <span>Inflation rate (%)</span>
               <input
                 id="inflationRate"
@@ -135,26 +132,88 @@
             </label>
           </div>
 
+          <div id="advanced-fields" class="advanced-fields is-hidden" aria-hidden="true">
+            <div class="form-grid">
+              <label class="field">
+                <span>Stop contributions after (years)</span>
+                <input
+                  id="contributionYears"
+                  name="contributionYears"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="60"
+                  step="1"
+                  placeholder="Leave blank to disable"
+                  aria-describedby="assumption-text validation-message"
+                />
+                <span class="field-note">Monthly contributions are added for this many years, then stop.</span>
+              </label>
+
+              <label class="field">
+                <span>Start withdrawing at year</span>
+                <input
+                  id="startWithdrawalYear"
+                  name="startWithdrawalYear"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="60"
+                  step="1"
+                  placeholder="Leave blank to disable"
+                  aria-describedby="assumption-text validation-message"
+                />
+                <span class="field-note">Will adjust to inflation</span>
+              </label>
+
+              <label class="field">
+                <span>Withdraw amount per month</span>
+                <input
+                  id="monthlyWithdrawal"
+                  name="monthlyWithdrawal"
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  step="10"
+                  value="0"
+                  aria-describedby="assumption-text validation-message"
+                />
+              </label>
+            </div>
+          </div>
+
           <fieldset class="rates-group" aria-describedby="assumption-text">
             <legend>Return scenarios (annual %)</legend>
             <div class="form-grid rates-input-grid">
-            <label class="field">
-              <span>Rate 1 (%)</span>
+            <label class="field rate-field" id="rate-field-1">
+              <span class="rate-label-row">
+                <input id="rateEnabled1" name="rateEnabled1" type="checkbox" checked />
+                <span>Rate 1 (%)</span>
+              </span>
               <input id="rate1" name="rate1" type="number" inputmode="decimal" step="0.1" />
             </label>
 
-            <label class="field">
-              <span>Rate 2 (%)</span>
+            <label class="field rate-field" id="rate-field-2">
+              <span class="rate-label-row">
+                <input id="rateEnabled2" name="rateEnabled2" type="checkbox" checked />
+                <span>Rate 2 (%)</span>
+              </span>
               <input id="rate2" name="rate2" type="number" inputmode="decimal" step="0.1" />
             </label>
 
-            <label class="field">
-              <span>Rate 3 (%)</span>
+            <label class="field rate-field" id="rate-field-3">
+              <span class="rate-label-row">
+                <input id="rateEnabled3" name="rateEnabled3" type="checkbox" checked />
+                <span>Rate 3 (%)</span>
+              </span>
               <input id="rate3" name="rate3" type="number" inputmode="decimal" step="0.1" />
             </label>
 
-            <label class="field">
-              <span>Rate 4 (%)</span>
+            <label class="field rate-field" id="rate-field-4">
+              <span class="rate-label-row">
+                <input id="rateEnabled4" name="rateEnabled4" type="checkbox" checked />
+                <span>Rate 4 (%)</span>
+              </span>
               <input id="rate4" name="rate4" type="number" inputmode="decimal" step="0.1" />
             </label>
             </div>
@@ -196,6 +255,7 @@
                 <th scope="col" id="rate2-header">Rate 2</th>
                 <th scope="col" id="rate3-header">Rate 3</th>
                 <th scope="col" id="rate4-header">Rate 4</th>
+                <th scope="col" id="cumulative-withdrawn-header" class="is-hidden">Cumulative Withdrawn</th>
               </tr>
             </thead>
             <tbody id="projection-table-body"></tbody>

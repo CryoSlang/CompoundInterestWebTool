@@ -157,6 +157,49 @@ h2 {
   font-size: 0.95rem;
 }
 
+.advanced-toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.advanced-toggle-label {
+  font-size: 0.92rem;
+  color: #2d3b4f;
+  font-weight: 600;
+}
+
+.advanced-toggle-switch {
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #c8d6eb;
+  background: #eef3fb;
+  padding: 2px;
+  position: relative;
+}
+
+.advanced-toggle-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #c8d6eb;
+  display: block;
+  transform: translateX(0);
+  transition: transform 150ms ease;
+}
+
+.advanced-toggle-switch.is-on {
+  background: #eaf2ff;
+  border-color: var(--focus);
+}
+
+.advanced-toggle-switch.is-on .advanced-toggle-thumb {
+  transform: translateX(22px);
+}
+
 .helper code {
   font-family: "Courier New", monospace;
   font-size: 0.9em;
@@ -197,6 +240,28 @@ h2 {
   color: #2d3b4f;
 }
 
+.rate-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.rate-label-row input[type="checkbox"] {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+}
+
+.rate-field.rate-disabled input[type="number"] {
+  background: #eef2f7;
+  border-color: #d5dde9;
+  color: #7b8798;
+}
+
+.rate-field.rate-disabled .rate-label-row > span {
+  color: #7b8798;
+}
+
 .field-note {
   font-size: 0.82rem;
   color: var(--muted);
@@ -205,6 +270,18 @@ h2 {
 
 .core-input-grid {
   margin-bottom: 0.8rem;
+}
+
+.advanced-fields {
+  margin-bottom: 0.8rem;
+  border: 1px solid #d9e2f0;
+  border-radius: 0.6rem;
+  padding: 0.8rem;
+  background: #fcfdff;
+}
+
+.advanced-fields.is-hidden {
+  display: none;
 }
 
 .rates-group {
@@ -427,6 +504,10 @@ td {
   font-size: 0.93rem;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 th {
   color: var(--muted);
   font-weight: 700;
@@ -459,6 +540,18 @@ tbody tr:nth-child(even) {
 
 .milestone-marker-1m {
   box-shadow: inset 7px 0 0 #198754;
+}
+
+.depleted-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  background: #ffe2e2;
+  color: #8b1e1e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
 }
 
 .axis-label {
@@ -545,5 +638,10 @@ tbody tr:nth-child(even) {
   #projection-table[data-mobile-scenario="3"] th:nth-child(5),
   #projection-table[data-mobile-scenario="3"] td:nth-child(5) {
     display: table-cell;
+  }
+
+  #projection-table th:nth-child(6),
+  #projection-table td:nth-child(6) {
+    display: none !important;
   }
 }

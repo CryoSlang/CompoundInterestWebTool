@@ -8,7 +8,7 @@ import {
 } from "./formatters.js";
 
 const RATE_COLORS = ["#2366d1", "#0f8b5f", "#8a4df1", "#d46e1b"];
-const APP_VERSION = "v1.4.2";
+const APP_VERSION = "v1.5.0";
 const TAKEOUT_DINNER_FOR_TWO_COST = 40;
 
 const dom = {
@@ -31,17 +31,28 @@ const dom = {
   copyShareButton: document.getElementById("copy-share-link"),
   downloadCsvButton: document.getElementById("download-csv"),
   coffeeEquivalentNote: document.getElementById("coffee-equivalent-note"),
+  showAdvanced: document.getElementById("show-advanced"),
+  advancedFields: document.getElementById("advanced-fields"),
+  cumulativeWithdrawnHeader: document.getElementById("cumulative-withdrawn-header"),
   rateHeaders: [
     document.getElementById("rate1-header"),
     document.getElementById("rate2-header"),
     document.getElementById("rate3-header"),
     document.getElementById("rate4-header"),
   ],
+  rateFields: [
+    document.getElementById("rate-field-1"),
+    document.getElementById("rate-field-2"),
+    document.getElementById("rate-field-3"),
+    document.getElementById("rate-field-4"),
+  ],
   inputs: {
     initialInvestment: document.getElementById("initialInvestment"),
     monthlyInvestment: document.getElementById("monthlyInvestment"),
     years: document.getElementById("years"),
     contributionYears: document.getElementById("contributionYears"),
+    startWithdrawalYear: document.getElementById("startWithdrawalYear"),
+    monthlyWithdrawal: document.getElementById("monthlyWithdrawal"),
     inflationRate: document.getElementById("inflationRate"),
     rates: [
       document.getElementById("rate1"),
@@ -49,12 +60,19 @@ const dom = {
       document.getElementById("rate3"),
       document.getElementById("rate4"),
     ],
+    rateEnabled: [
+      document.getElementById("rateEnabled1"),
+      document.getElementById("rateEnabled2"),
+      document.getElementById("rateEnabled3"),
+      document.getElementById("rateEnabled4"),
+    ],
   },
 };
 
 let mobileScenarioIndex = 0;
 let viewMode = "real";
 let currentModel = null;
+let advancedEnabled = false;
 const HEAT_STOPS = [
   { t: 0, color: [253, 226, 226] },   // light red
   { t: 0.1, color: [255, 232, 194] }, // amber near 100k
@@ -72,6 +90,15 @@ function debounce(fn, waitMs) {
 
 function percentToInput(rate) {
   return (rate * 100).toFixed(2).replace(/\.00$/, "");
+}
+
+function parseOptionalNumberInput(inputEl) {
+  const raw = inputEl.value.trim();
+  if (raw === "") {
+    return null;
+  }
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function clamp(value, min, max) {
@@ -121,21 +148,29 @@ function populateForm(inputs) {
   dom.inputs.initialInvestment.value = String(inputs.initialInvestment);
   dom.inputs.monthlyInvestment.value = String(inputs.monthlyInvestment);
   dom.inputs.years.value = String(inputs.years);
-  dom.inputs.contributionYears.value = String(inputs.contributionYears);
+  dom.inputs.contributionYears.value = inputs.contributionYears === null ? "" : String(inputs.contributionYears);
+  dom.inputs.startWithdrawalYear.value = inputs.startWithdrawalYear === null ? "" : String(inputs.startWithdrawalYear);
+  dom.inputs.monthlyWithdrawal.value = String(inputs.monthlyWithdrawal ?? 0);
   dom.inputs.inflationRate.value = percentToInput(inputs.inflationRate);
   inputs.rates.forEach((rate, index) => {
     dom.inputs.rates[index].value = percentToInput(rate);
+    dom.inputs.rateEnabled[index].checked = inputs.enabledRates[index];
+    updateRateFieldState(index, inputs.enabledRates[index]);
   });
 }
 
 function readRawInputs() {
+  const startWithdrawalYear = parseOptionalNumberInput(dom.inputs.startWithdrawalYear);
   return {
     initialInvestment: Number(dom.inputs.initialInvestment.value),
     monthlyInvestment: Number(dom.inputs.monthlyInvestment.value),
     years: Number(dom.inputs.years.value),
-    contributionYears: Number(dom.inputs.contributionYears.value),
+    contributionYears: parseOptionalNumberInput(dom.inputs.contributionYears),
+    startWithdrawalYear,
+    monthlyWithdrawal: startWithdrawalYear === null ? 0 : Number(dom.inputs.monthlyWithdrawal.value),
     inflationRate: Number(dom.inputs.inflationRate.value) / 100,
     rates: dom.inputs.rates.map((input) => Number(input.value) / 100),
+    enabledRates: dom.inputs.rateEnabled.map((input) => Boolean(input.checked)),
   };
 }
 
@@ -149,12 +184,21 @@ function parseUrlState() {
   if (parsedView === "nominal" || parsedView === "real") {
     viewMode = parsedView;
   }
+  const hasAdvancedParam = ["contribute", "withdrawStart", "withdrawMonthly"].some((key) => params.has(key));
+  if (hasAdvancedParam) {
+    advancedEnabled = true;
+  }
 
   return {
     initialInvestment: Number(params.get("initial") ?? DEFAULT_INPUTS.initialInvestment),
     monthlyInvestment: Number(params.get("monthly") ?? DEFAULT_INPUTS.monthlyInvestment),
     years: Number(params.get("years") ?? DEFAULT_INPUTS.years),
-    contributionYears: Number(params.get("contribute") ?? DEFAULT_INPUTS.contributionYears),
+    contributionYears: params.has("contribute") ? Number(params.get("contribute")) : DEFAULT_INPUTS.contributionYears,
+    startWithdrawalYear: params.has("withdrawStart") ? Number(params.get("withdrawStart")) : DEFAULT_INPUTS.startWithdrawalYear,
+    monthlyWithdrawal: params.has("withdrawMonthly") ? Number(params.get("withdrawMonthly")) : DEFAULT_INPUTS.monthlyWithdrawal,
+    enabledRates: params.has("enabled")
+      ? String(params.get("enabled")).split("").slice(0, 4).map((x) => x === "1")
+      : DEFAULT_INPUTS.enabledRates,
     inflationRate: Number(params.get("inflation") ?? (DEFAULT_INPUTS.inflationRate * 100)) / 100,
     rates: [1, 2, 3, 4].map((i) => Number(params.get(`rate${i}`) ?? (DEFAULT_INPUTS.rates[i - 1] * 100)) / 100),
   };
@@ -165,12 +209,46 @@ function updateUrl(inputs) {
   params.set("initial", String(inputs.initialInvestment));
   params.set("monthly", String(inputs.monthlyInvestment));
   params.set("years", String(inputs.years));
-  params.set("contribute", String(inputs.contributionYears));
   params.set("inflation", String(inputs.inflationRate * 100));
   params.set("view", viewMode);
+  params.set("enabled", inputs.enabledRates.map((x) => (x ? "1" : "0")).join(""));
   inputs.rates.forEach((rate, index) => params.set(`rate${index + 1}`, String(rate * 100)));
+  if (advancedEnabled) {
+    if (inputs.contributionYears !== null) {
+      params.set("contribute", String(inputs.contributionYears));
+    }
+    if (inputs.startWithdrawalYear !== null) {
+      params.set("withdrawStart", String(inputs.startWithdrawalYear));
+      params.set("withdrawMonthly", String(inputs.monthlyWithdrawal));
+    }
+  }
   const next = `${window.location.pathname}?${params.toString()}`;
   window.history.replaceState({}, "", next);
+}
+
+function renderAdvancedUi() {
+  dom.showAdvanced.classList.toggle("is-on", advancedEnabled);
+  dom.showAdvanced.setAttribute("aria-checked", String(advancedEnabled));
+  dom.advancedFields.classList.toggle("is-hidden", !advancedEnabled);
+  dom.advancedFields.setAttribute("aria-hidden", String(!advancedEnabled));
+  dom.cumulativeWithdrawnHeader.classList.toggle("is-hidden", !advancedEnabled);
+}
+
+function clearAdvancedFields() {
+  dom.inputs.contributionYears.value = "";
+  dom.inputs.startWithdrawalYear.value = "";
+  dom.inputs.monthlyWithdrawal.value = "0";
+}
+
+function getEnabledRateIndices(model) {
+  return model.inputs.enabledRates
+    .map((isEnabled, index) => (isEnabled ? index : -1))
+    .filter((index) => index >= 0);
+}
+
+function updateRateFieldState(index, enabled) {
+  dom.rateFields[index].classList.toggle("rate-disabled", !enabled);
+  dom.inputs.rates[index].disabled = !enabled;
 }
 
 function buildMetricCard(title, value, subtext, className = "") {
@@ -201,7 +279,7 @@ function renderSummary(model) {
   topGrid.className = "summary-grid";
 
   const totalInvestedCard = buildMetricCard(
-    "Total Invested (today's $)",
+    "Total Contributed (today's $)",
     formatCurrency(model.totals.totalInvestedToday),
     `${formatInteger(model.inputs.years)} years | contributing ${formatInteger(model.inputs.contributionYears)} years`,
     viewMode === "real" ? "metric-card--primary" : ""
@@ -210,7 +288,7 @@ function renderSummary(model) {
 
   topGrid.append(
     buildMetricCard(
-      "Total Invested (actual $)",
+      "Total Contributed (actual $)",
       formatCurrency(model.totals.totalInvestedActual),
       "Nominal contributions inflated over time",
       viewMode === "nominal" ? "metric-card--primary" : ""
@@ -229,6 +307,26 @@ function renderSummary(model) {
   );
   topSection.append(topGrid);
 
+  if (advancedEnabled && model.withdrawal.startYear !== null && model.withdrawal.monthlyAmountReal > 0) {
+    const withdrawnValue = viewMode === "real"
+      ? model.totals.totalWithdrawnReal
+      : model.totals.totalWithdrawnNominal;
+    topGrid.append(
+      buildMetricCard(
+        viewMode === "real" ? "Total Withdrawn (today's $)" : "Total Withdrawn (actual $)",
+        formatCurrency(withdrawnValue),
+        "Cumulative successful withdrawals"
+      )
+    );
+    topGrid.append(
+      buildMetricCard(
+        "Depletion Year",
+        model.withdrawal.depletionYear === null ? "Not depleted" : `Year ${formatInteger(model.withdrawal.depletionYear)}`,
+        "First year requested withdrawals cannot be fully met"
+      )
+    );
+  }
+
   const resultsSection = document.createElement("section");
   resultsSection.className = "summary-section summary-results-group";
   const sectionTitle = document.createElement("p");
@@ -238,7 +336,9 @@ function renderSummary(model) {
   const resultsGrid = document.createElement("div");
   resultsGrid.className = "results-grid";
 
-  model.scenarios.forEach((scenario, index) => {
+  const enabledIndices = getEnabledRateIndices(model);
+  enabledIndices.forEach((index) => {
+    const scenario = model.scenarios[index];
     const title = `Result at ${formatPercent(scenario.annualRate)}`;
     const value = viewMode === "real"
       ? formatCurrency(scenario.finalValueReal)
@@ -248,7 +348,6 @@ function renderSummary(model) {
     const monthlyRateValue = viewMode === "real" ? scenario.realMonthlyRate : scenario.nominalMonthlyRate;
     const sub = `Times increase: ${formatRatio(increase)} | ${monthlyRateLabel}: ${formatPercent(monthlyRateValue)}`;
     resultsGrid.append(buildMetricCard(title, value, sub));
-
     dom.rateHeaders[index].textContent = `Rate ${index + 1} (${formatPercent(scenario.annualRate)})`;
   });
   resultsSection.append(resultsGrid);
@@ -259,6 +358,7 @@ function renderSummary(model) {
 function renderTable(model) {
   const milestones = [100000, 500000, 1000000];
   const firstHitsByScenario = [new Map(), new Map(), new Map(), new Map()];
+  const enabledIndices = getEnabledRateIndices(model);
   const seriesKey = viewMode === "real" ? "realValues" : "nominalValues";
 
   model.projections.forEach((row, rowIndex) => {
@@ -283,6 +383,9 @@ function renderTable(model) {
     const values = viewMode === "real" ? row.realValues : row.nominalValues;
     values.forEach((value, scenarioIndex) => {
       const td = document.createElement("td");
+      if (!model.inputs.enabledRates[scenarioIndex]) {
+        td.classList.add("is-hidden");
+      }
       td.classList.add("table-value-cell");
       td.textContent = formatCurrency(value);
       td.style.backgroundColor = getHeatColorForValue(value);
@@ -302,19 +405,46 @@ function renderTable(model) {
         }
         td.title = `First crossed: ${crossedMilestones.map((m) => formatCurrency(m)).join(", ")}`;
       }
+
+      const scenarioDepletionYear = model.scenarios[scenarioIndex].depletionYear;
+      const isDepletedCell = advancedEnabled
+        && scenarioDepletionYear !== null
+        && row.year >= scenarioDepletionYear
+        && value <= 0;
+      if (isDepletedCell) {
+        td.innerHTML = `${formatCurrency(value)} <span class="depleted-badge">depleted</span>`;
+      }
       tr.append(td);
     });
+
+    if (advancedEnabled) {
+      const withdrawTd = document.createElement("td");
+      const cumulativeValue = viewMode === "real" ? row.cumulativeWithdrawnReal : row.cumulativeWithdrawnNominal;
+      withdrawTd.textContent = formatCurrency(cumulativeValue);
+      tr.append(withdrawTd);
+    }
 
     frag.append(tr);
   });
 
   dom.tableBody.innerHTML = "";
   dom.tableBody.append(frag);
+
+  dom.rateHeaders.forEach((header, index) => {
+    header.classList.toggle("is-hidden", !model.inputs.enabledRates[index]);
+  });
+
+  if (!enabledIndices.includes(mobileScenarioIndex)) {
+    mobileScenarioIndex = enabledIndices[0] ?? 0;
+    dom.projectionTable.setAttribute("data-mobile-scenario", String(mobileScenarioIndex));
+  }
 }
 
 function renderMobileTableControls(model) {
   dom.tableCompactControls.innerHTML = "";
-  model.scenarios.forEach((scenario, idx) => {
+  const enabledIndices = getEnabledRateIndices(model);
+  enabledIndices.forEach((idx) => {
+    const scenario = model.scenarios[idx];
     const button = document.createElement("button");
     button.type = "button";
     button.className = `compact-scenario-button${idx === mobileScenarioIndex ? " is-active" : ""}`;
@@ -398,7 +528,30 @@ function renderChart(model) {
     svg.append(label);
   }
 
-  model.scenarios.forEach((scenario, scenarioIndex) => {
+  if (advancedEnabled && model.withdrawal.startYear !== null && model.withdrawal.monthlyAmountReal > 0) {
+    const withdrawalStartIndex = clamp(model.withdrawal.startYear - 1, 0, rows.length - 1);
+    const markerX = toX(withdrawalStartIndex);
+    const marker = document.createElementNS(svgNs, "line");
+    marker.setAttribute("x1", String(markerX));
+    marker.setAttribute("x2", String(markerX));
+    marker.setAttribute("y1", String(margin.top));
+    marker.setAttribute("y2", String(height - margin.bottom));
+    marker.setAttribute("stroke", "#d46e1b");
+    marker.setAttribute("stroke-width", "2");
+    marker.setAttribute("stroke-dasharray", "5 4");
+    svg.append(marker);
+
+    const markerLabel = document.createElementNS(svgNs, "text");
+    markerLabel.setAttribute("x", String(markerX + 6));
+    markerLabel.setAttribute("y", String(margin.top + 14));
+    markerLabel.setAttribute("class", "axis-label");
+    markerLabel.textContent = `Withdrawals start (Year ${model.withdrawal.startYear})`;
+    svg.append(markerLabel);
+  }
+
+  const enabledIndices = getEnabledRateIndices(model);
+  enabledIndices.forEach((scenarioIndex) => {
+    const scenario = model.scenarios[scenarioIndex];
     const points = rows.map((row, rowIndex) => ({
       x: toX(rowIndex),
       y: toY((viewMode === "real" ? row.realValues : row.nominalValues)[scenarioIndex]),
@@ -433,7 +586,8 @@ function renderChart(model) {
   dom.chartWrapper.append(svg);
 
   dom.chartLegend.innerHTML = "";
-  model.scenarios.forEach((scenario, idx) => {
+  enabledIndices.forEach((idx) => {
+    const scenario = model.scenarios[idx];
     const li = document.createElement("li");
     li.className = "legend-item";
 
@@ -473,23 +627,29 @@ function escapeCsvValue(value) {
 }
 
 function buildCsv(model) {
+  const enabledIndices = getEnabledRateIndices(model);
   const rows = [];
   rows.push(["Mode", viewMode === "real" ? "Real (today's $)" : "Nominal (actual $)"]);
-  rows.push(["Initial Investment", model.inputs.initialInvestment]);
-  rows.push(["Monthly Investment", model.inputs.monthlyInvestment]);
+  rows.push(["Initial Contribution", model.inputs.initialInvestment]);
+  rows.push(["Monthly Contribution", model.inputs.monthlyInvestment]);
   rows.push(["Years", model.inputs.years]);
   rows.push(["Stop contributions after (years)", model.inputs.contributionYears]);
+  rows.push(["Start withdrawing at year", model.inputs.startWithdrawalYear]);
+  rows.push(["Withdraw amount per month (today's $)", model.inputs.monthlyWithdrawal]);
   rows.push(["Inflation Rate", model.inputs.inflationRate]);
-  rows.push(["Total Invested (today's $)", model.totals.totalInvestedToday]);
-  rows.push(["Total Invested (actual $)", model.totals.totalInvestedActual]);
+  rows.push(["Total Contributed (today's $)", model.totals.totalInvestedToday]);
+  rows.push(["Total Contributed (actual $)", model.totals.totalInvestedActual]);
+  rows.push(["Total Withdrawn (today's $)", model.totals.totalWithdrawnReal]);
+  rows.push(["Total Withdrawn (actual $)", model.totals.totalWithdrawnNominal]);
+  rows.push(["Depletion Year", model.withdrawal.depletionYear === null ? "Not depleted" : model.withdrawal.depletionYear]);
   rows.push([]);
   rows.push([
     "Year",
-    ...model.scenarios.map((scenario) => `Rate ${formatPercent(scenario.annualRate)}`),
+    ...enabledIndices.map((index) => `Rate ${formatPercent(model.scenarios[index].annualRate)}`),
   ]);
   model.projections.forEach((row) => {
     const values = viewMode === "real" ? row.realValues : row.nominalValues;
-    rows.push([row.year, ...values.map((value) => Number(value.toFixed(2)))]);
+    rows.push([row.year, ...enabledIndices.map((index) => Number(values[index].toFixed(2)))]);
   });
 
   return rows.map((row) => row.map(escapeCsvValue).join(",")).join("\n");
@@ -526,8 +686,14 @@ function showWarnings(model) {
   if (model.inputs.years < MIN_YEARS || model.inputs.years > MAX_YEARS) {
     warnings.push(`Years are clamped to ${MIN_YEARS}-${MAX_YEARS}.`);
   }
-  if (model.inputs.contributionYears > model.inputs.years) {
+  if (model.inputs.contributionYears !== null && model.inputs.contributionYears > model.inputs.years) {
     warnings.push("Contribution years cannot exceed projection years.");
+  }
+  if (advancedEnabled && model.inputs.startWithdrawalYear !== null && model.inputs.monthlyWithdrawal <= 0) {
+    warnings.push("Withdrawal start year is set but monthly withdrawal is 0.");
+  }
+  if (!model.inputs.enabledRates.some(Boolean)) {
+    warnings.push("At least one rate must be enabled.");
   }
   warnings.push(...model.warnings);
   dom.warning.textContent = warnings.join(" ");
@@ -538,6 +704,7 @@ function renderAll() {
   const normalized = normalizeInputs(raw);
   const model = calculateModel(normalized);
   currentModel = model;
+  renderAdvancedUi();
   updateCoffeeEquivalent(model.inputs.monthlyInvestment);
   renderViewModeUi();
   renderSummary(model);
@@ -552,6 +719,40 @@ const debouncedRender = debounce(renderAll, 150);
 
 function bindEvents() {
   dom.form.addEventListener("input", debouncedRender);
+  dom.inputs.rateEnabled.forEach((checkbox, index) => {
+    checkbox.addEventListener("change", () => {
+      const enabled = dom.inputs.rateEnabled.map((x) => x.checked);
+      if (!enabled.some(Boolean)) {
+        checkbox.checked = true;
+        dom.actionMessage.textContent = "At least one rate must remain enabled.";
+        return;
+      }
+      updateRateFieldState(index, checkbox.checked);
+      renderAll();
+    });
+  });
+  dom.showAdvanced.addEventListener("click", () => {
+    const nextEnabled = !advancedEnabled;
+    if (!nextEnabled) {
+      const hasAdvancedValues = dom.inputs.contributionYears.value.trim() !== ""
+        || dom.inputs.startWithdrawalYear.value.trim() !== ""
+        || Number(dom.inputs.monthlyWithdrawal.value) !== 0;
+      if (hasAdvancedValues) {
+        const confirmed = window.confirm(
+          "Disabling advanced fields will erase their values. Are you sure you want to proceed?"
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+      clearAdvancedFields();
+      advancedEnabled = false;
+      renderAll();
+      return;
+    }
+    advancedEnabled = true;
+    renderAll();
+  });
   dom.viewModeToggle.addEventListener("click", () => {
     viewMode = viewMode === "real" ? "nominal" : "real";
     renderAll();
@@ -560,6 +761,7 @@ function bindEvents() {
   dom.downloadCsvButton.addEventListener("click", downloadCsv);
   dom.resetButton.addEventListener("click", () => {
     populateForm(DEFAULT_INPUTS);
+    advancedEnabled = false;
     renderAll();
   });
 }
